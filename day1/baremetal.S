@@ -13,6 +13,14 @@ top_elf_calories: .ascii "Calories: \0"
 total_calories: .ascii "Total Calories: \0"
 debug_str: .ascii "debug: \0"
 
+#define PRINT_NUM( str, val ) \
+	la t0, str;\
+	csrw 0x138, t0;\
+	csrw 0x136, val;\
+	la t0, newline;\
+	csrw 0x138, t0
+
+
 #define NUM_TOP_ELVES 3
 top_elves: .space NUM_TOP_ELVES*4, 0
 
@@ -56,19 +64,12 @@ asmmain:
 	lw t3, 0(t4)
 	add t2, t2, t3
 	addi t4, t4, 4
-	la t0, top_elf_calories
-	csrw 0x138, t0
-	csrw 0x136, t3
-	la t0, newline
-	csrw 0x138, t0
+
+	PRINT_NUM( top_elf_calories, t3 )
+
 	bne t4, t1, .print_elves
 
-	la t0, total_calories
-	csrw 0x138, t0
-	csrw 0x136, t2
-	la t0, newline
-	csrw 0x138, t0
-
+	PRINT_NUM( total_calories, t2 );
 
 	// Shutdown
 	la a5, 0x5555
@@ -96,13 +97,14 @@ record_elf: // (elf_number, number of calories)
 	ret
 
 getchar:
-	la t0, 0x10000005
+	la t0, 0x10000005  // UART Status address
 	lw a0, 0(t0)
 	andi a0, a0, 0x1
 	beq a0, x0, getchar
 	addi t0, t0, -5
 	lw a0, 0(t0)
 	ret
+
 is_eof:
 	la t0, _stdin_iseof
 	lw a0, 0(t0)
@@ -124,8 +126,6 @@ is_eof:
 
 // fffffeda = newline
 // fffffed4 = EOF char
-
-
 read_num_base_10:
 	mv t2, ra
 	li t1, 10
